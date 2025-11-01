@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue July 29 11:25:26 2025
+Created on Fri Oct 31 11:25:26 2025
 @author: Hang Miao
 """
 
@@ -44,6 +44,69 @@ plt.show()
 
 #%%
 
+# build recomination tree
+import networkx as nx
+import matplotlib.pyplot as plt
 
+def build_binomial_tree(T: int):
+    """
+    Build a directed recombining (binomial) tree with T time steps.
+    Nodes are (t, i) with t=0..T and i=0..t.
+    """
+    G = nx.DiGraph()
+    # add nodes
+    for t in range(T + 1):
+        for i in range(t + 1):
+            G.add_node((t, i), t=t, i=i)
+    # add edges (down and up)
+    for t in range(T):
+        for i in range(t + 1):
+            G.add_edge((t, i), (t + 1, i), move="down")     # same i
+            G.add_edge((t, i), (t + 1, i + 1), move="up")   # i+1
+    return G
 
+def lattice_positions(G, x_gap=1.5, y_gap=1.0):
+    """
+    Place nodes on a grid: time t on x-axis, state i on y-axis,
+    centered vertically per time step.
+    """
+    # collect max time
+    T = max(t for (t, i) in G.nodes)
+    pos = {}
+    for t in range(T + 1):
+        level_nodes = [(t, i) for (t, i) in G.nodes if t == t]  # just iterate i
+        n_level = t + 1
+        # center states around 0 for symmetry
+        y0 = -(n_level - 1) / 2.0
+        for i in range(n_level):
+            pos[(t, i)] = (t * x_gap, (y0 + i) * y_gap)
+    return pos
+
+# === Example usage ===
+T = 5
+G = build_binomial_tree(T)
+pos = lattice_positions(G)
+
+plt.figure(figsize=(10, 5))
+nx.draw(
+    G, pos,
+    with_labels=False,
+    node_size=400,
+    node_color="#ddddff",
+    arrows=False,   # tree direction is obvious; set True if you want arrows
+    linewidths=0.5,
+    width=1.0
+)
+
+# label nodes as (t,i)
+node_labels = {n: f"{n}" for n in G.nodes}
+nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=8)
+
+# (optional) color edges by move type
+edge_colors = ["#2ca02c" if G.edges[e]["move"] == "up" else "#1f77b4" for e in G.edges]
+nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=1.2)
+
+plt.axis("off")
+plt.tight_layout()
+plt.show()
 

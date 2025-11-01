@@ -110,3 +110,48 @@ plt.axis("off")
 plt.tight_layout()
 plt.show()
 
+## add probability values
+
+p = 0.55
+for (u, v, data) in G.edges(data=True):
+    data["p"] = p if data["move"] == "up" else (1 - p)
+    #print(u, v, data)
+
+# Example node values (e.g., asset price S0 * u^i * d^(t-i))
+S0, u, d = 100, 1.1, 0.9
+for (t, i) in G.nodes:
+    G.nodes[(t, i)]["S"] = S0 * (u ** i) * (d ** (t - i))
+
+
+
+plt.figure(figsize=(10, 5))
+nx.draw(
+    G, pos,
+    with_labels=False,
+    node_size=400,
+    node_color="#ddddff",
+    arrows=False,   # tree direction is obvious; set True if you want arrows
+    linewidths=0.5,
+    width=1.0
+)
+# Draw edge labels and node labels for values
+edge_labels = {(u, v): f'{G[u][v]["p"]:.2f}' for (u, v) in G.edges}
+nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7)
+node_value_labels = {n: f'{G.nodes[n]["S"]:.2f}' for n in G.nodes}
+nx.draw_networkx_labels(G, pos, labels=node_value_labels, font_size=8)
+
+
+# (optional) color edges by move type
+edge_colors = ["#2ca02c" if G.edges[e]["move"] == "up" else "#1f77b4" for e in G.edges]
+nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=1.2)
+
+
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+

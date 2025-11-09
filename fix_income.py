@@ -221,7 +221,7 @@ forward_rates = spot_forward(spot_rates )
 # calibrating the binomial interest rate tree 
 par_rates = [0.01, 0.012, 0.0125, 0.014, 0.018]
 spot_rates = par_spot(par_rates )
-forward_rates = spot_forward(spot_rates )
+forward_rates = spot_forward( spot_rates )
 
 
 sigma = 0.15
@@ -294,13 +294,7 @@ print("Optimal x:", result.x[0])
 print("Function value:", PV_interest_rate_binominal(result.x[0]))
 
 
-    rates_array = []
-    T = len( par_rates )
-    spot_rates = par_spot(par_rates )
-    forward_rates = spot_forward(spot_rates )
-    rates_array.append([spot_rates[0]])
 
-rates_array[0][0]
 
 def calibration_binomial_interest_rate(par_rates,sigma = 0.15 ):
     rates_array = []
@@ -332,14 +326,125 @@ def calibration_binomial_interest_rate(par_rates,sigma = 0.15 ):
         
         
     return forward_tree 
+#%% 
+# Define your function
+def PV_interest_rate_binominal(forward_rate_l, t_level, par_rate, forward_tree, sigma = 0.15):
+    #par_rate = par_rates[] 
+    #forward_rate_root = 0.01
+    
+    
+    forward_rates_initial = np.array([forward_rate_l*exp(2*sigma*i) for i in range(t_level+1) ] ) 
+    #forward_rate_l = 0.0125 #forward_rates[0]*exp(-sigma)
+    #forward_rate_h = forward_rate_l*exp(2*sigma)
+    
+    terminal_price  = (par_rate+1)*100
+    root_price = (terminal_price/(1+forward_rate_h)*0.5 +   + par_rate*100)/(1+forward_rate_root)
+
+    return root_price
+
+        
+forward_tree = calibration_binomial_interest_rate(par_rates,sigma = 0.15 )    
+        
+forward_tree.nodes
+
+
+
+rates_array = {}
+T = len( par_rates )
+spot_rates = par_spot(par_rates )
+forward_rates = spot_forward(spot_rates )
+rates_array[0] = [spot_rates[0]]
+
+#rates_array[0][0]
+t_level = 1; sigma = 0.15
+forward_rate_l = forward_rates[t-1]*exp(-t*sigma)
+
+PV_list_cur[0], PV_array = PV_binomial_interest_tree(forward_rate_l, t_level, sigma = 0.15)
+
+
+
+#par_rate = par_rates[t] 
+#terminal_price = (par_rate+1)*100
+
+ 
+
+#forward_rates_initial = np.array([forward_rate_l*exp(2*sigma*i) for i in range(t_level+1) ] ) 
+
+#PV_list_cur = terminal_price/( forward_rates_initial + 1 )  
+
+    #len( rates_array.keys() )
+
+#PV_array = {}
+#PV_array[t_level] = [terminal_price]*3
+
+def PV_binomial_interest_tree(forward_rate_l, t_level=1, sigma = 0.15):
+    
+    par_rate = par_rates[t_level] 
+    terminal_price = (par_rate+1)*100
+    forward_rates_initial = np.array([forward_rate_l*exp(2*sigma*i) for i in range(t_level+1) ] ) 
+    PV_array = {}
+    
+    PV_list_cur = terminal_price/( forward_rates_initial + 1 )  
+    PV_array[t_level] = PV_list_cur
+    for t in np.arange(t_level,0,-1):
+        #print(t)
+        PV_list = PV_list_cur.copy()
+        PV_list_cur = []
+        #node_pre_price = []
+        for i in range(len(PV_list)-1):
+            PV = ( 0.5*PV_list[i] + 0.5*PV_list[i+1]  +  par_rate*100 )/( 1 +rates_array[t-1][i])
+            PV_list_cur.append(PV)
+        
+        PV_array[t-1] = PV_list_cur
+    
+    return PV_array
+    
+
+# Define the objective (distance from 100)
+def objective(x, t_level, sigma):  
+    PV_array = PV_binomial_interest_tree(x,t_level,sigma  )  
+    discrepency =    abs( PV_array[0][0]  - 100)
+    return discrepency
+
+# Run optimization starting from an initial guess (say x=0)
+result = minimize(lambda x: objective(x, t_level), x0=0.012074059789530169)  #0.0125 0.012074059789530169
+
+print("Optimal x:", result.x[0])
+print("Function value:", PV_binomial_interest_tree(result.x[0], t_level, sigma)[0][0] )
+
+forward_rates_final = [result.x[0]*exp(2*sigma*i) for i in range(t_level+1) ]
+
+rates_array[t_level] = forward_rates_final
+
+T = len( par_rates )
+sigma = 0.0001
+for t_level in range(1,T):
+
+    forward_rate_l = forward_rates[t_level-1]*exp(-t_level*sigma)
+    
+    # Run optimization starting from an initial guess (say x=0)
+    result = minimize(lambda x: objective(x, t_level, sigma), x0=forward_rate_l)  #0.0125 0.012074059789530169
+    
+    print("Optimal x:", result.x[0])
+    print("Function value:", PV_binomial_interest_tree(result.x[0], t_level, sigma)[0][0] )
+    
+    forward_rates_final = [result.x[0]*exp(2*sigma*i) for i in range(t_level+1) ]
+    
+    rates_array[t_level] = forward_rates_final
+
+
+
+
+level_nodes = [(t, i) for (t, i) in forward_tree.nodes if t == t_level] 
+node_pre = list( Forward_tree.predecessors((2,2)) )[0]
+
+
+
 
 # Define your function
 def PV_interest_rate_binominal(forward_rate_l,t_level, sigma = 0.15):
     par_rate = par_rates[] 
     forward_rate_root = 0.01
-    
-    
-    forward_rate_initial = [forward_rate_l*exp(2*sigma*i) for i in range(t+1) ] 
     #forward_rate_l = 0.0125 #forward_rates[0]*exp(-sigma)
     forward_rate_h = forward_rate_l*exp(2*sigma)
     
@@ -348,18 +453,7 @@ def PV_interest_rate_binominal(forward_rate_l,t_level, sigma = 0.15):
 
     return root_price
 
-        
-forward_tree = calibration_binomial_interest_rate(par_rates,sigma = 0.15 )    
-        
-       
-list(forward_tree )
 
-forward_tree.nodes
-t_level = 2
-level_nodes = [(t, i) for (t, i) in forward_tree.nodes if t == t_level] 
-level_nodes
-
-node_pre = list( Forward_tree.predecessors((2,2)) )[0]
 
 #%% 
 def build_binomial_tree(T: int):

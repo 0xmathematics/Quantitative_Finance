@@ -112,6 +112,11 @@ class binomial_interest_rate:
                 PV_list_cur.append(PV)
             
             PV_array[t-1] = PV_list_cur
+            
+        for node in self.tree.nodes:
+            t, i = node
+            if t < (len(PV_array )):
+                self.tree.nodes[node]["discounted_value"]= PV_array[t][i]            
         return PV_array
         
         
@@ -162,7 +167,8 @@ class binomial_interest_rate:
                 PV_list_cur.append(PV)
             
             PV_array[t-1] = PV_list_cur
-        
+            
+       
         return PV_array
         
 
@@ -219,10 +225,10 @@ class binomial_interest_rate:
                 pos[(t, i)] = (t * x_gap, (y0 + i) * y_gap)
         return pos
 
-    def plot_binomial_tree(self, G = None, pos = None):
         if G == None or pos == None:
             G = self.tree; pos = self.tree_pos
             #pos = self._lattice_positions(G)
+
             
         plt.figure(figsize=(10, 5))
         nx.draw(
@@ -239,8 +245,49 @@ class binomial_interest_rate:
         #node_labels = {n: f"{n}" for n in G.nodes}
         #nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=8)
         
-        
+
         node_value_labels = {n: f'{n} \n {G.nodes[n]["forward_rate"]:.4%}' for n in G.nodes}
+        
+        nx.draw_networkx_labels(G, pos, labels=node_value_labels, font_size=10)
+        # (optional) color edges by move type
+        edge_colors = ["#2ca02c" if G.edges[e]["move"] == "up" else "#1f77b4" for e in G.edges]
+        nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=1.2)
+        
+        plt.axis("off")
+        plt.tight_layout()
+        plt.show() 
+
+    def plot_binomial_tree_bond(self,  level = None,):
+        if level == None:
+            G = self.tree; pos = self.tree_pos
+            #pos = self._lattice_positions(G)
+        else:
+            #Filter nodes where the first node i <= 3
+            filtered_nodes = [(i, j) for (i, j) in self.tree.nodes() if i < level]
+            
+            # Create a new subgraph
+            G = self.tree.subgraph(filtered_nodes).copy()
+            pos = {k: v for k, v in self.tree_pos.items() if k in filtered_nodes}
+
+            
+        plt.figure(figsize=(10, 5))
+        nx.draw(
+            G, pos,
+            with_labels=False,
+            node_size=400,
+            node_color="#ddddff",
+            arrows=False,   # tree direction is obvious; set True if you want arrows
+            linewidths=0.5,
+            width=1.0
+        )
+        
+        # label nodes as (t,i)
+        #node_labels = {n: f"{n}" for n in G.nodes}
+        #nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=8)
+        
+        #if node_value_labels == None:
+        node_value_labels = {n: f'{G.nodes[n]["discounted_value"]:.4f} \n {G.nodes[n]["forward_rate"]:.4%}' for n in G.nodes}
+        
         nx.draw_networkx_labels(G, pos, labels=node_value_labels, font_size=10)
         # (optional) color edges by move type
         edge_colors = ["#2ca02c" if G.edges[e]["move"] == "up" else "#1f77b4" for e in G.edges]

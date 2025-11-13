@@ -29,6 +29,12 @@ class binomial_interest_rate:
         self.tree_pos = self._lattice_positions(self.tree)
         self.rates_array =  {}   
         self.rates_array[0] = [self.spot_rates[0]]
+        
+
+        
+        
+        #self.node_value_labels = {n: f'{n} \n {self.tree.nodes[n]["forward_rate"]:.2f}' for n in self.tree.nodes}
+        
     def _convert_par_to_spot(self, par_rates_, PV = 100, FV=100):
         par_rates = np.array(par_rates_)
         N = par_rates.shape[0]
@@ -83,6 +89,35 @@ class binomial_interest_rate:
     
         return forward_rates
     
+    def PV_binomial_interest_tree_bond(self, coupoun_rate, maturity, FV= 100):
+        pmt = FV*coupoun_rate
+        t_level = maturity-1
+        
+        #par_rate = par_rates[t_level] 
+        terminal_price = (coupoun_rate+1)*FV
+        
+        
+        forward_rates_initial = np.array( self.rates_array[t_level] )
+        PV_array = {}
+        
+        PV_list_cur = terminal_price/( forward_rates_initial + 1 )  
+        PV_array[t_level] = PV_list_cur
+        for t in np.arange(t_level,0,-1):
+            #print(t)
+            PV_list = PV_list_cur.copy()
+            PV_list_cur = []
+            #node_pre_price = []
+            for i in range(len(PV_list)-1):
+                PV = ( 0.5*PV_list[i] + 0.5*PV_list[i+1]  +  coupoun_rate*100 )/( 1 +self.rates_array[t-1][i])
+                PV_list_cur.append(PV)
+            
+            PV_array[t-1] = PV_list_cur
+        return PV_array
+        
+        
+        
+        
+        
     def calibration_binomial_interest_rate(self, sigma = 0.15):
         
         T = len( self.par_rates )
@@ -100,6 +135,11 @@ class binomial_interest_rate:
             
             self.rates_array[t_level] = forward_rates_final
             
+            
+        for node in self.tree.nodes:
+            t, i = node
+            self.tree.nodes[node]["forward_rate"]= self.rates_array[t][i] 
+ 
         return self.rates_array
     
     def PV_binomial_interest_tree(self,  forward_rate_l, t_level=1, sigma = 0.15, par_rates_ = None ):
@@ -150,14 +190,15 @@ class binomial_interest_rate:
                 G.add_edge((t, i), (t + 1, i), move="down")     # same i
                 G.add_edge((t, i), (t + 1, i + 1), move="up")   # i+1
                 
-                
-        # initialize forward_rate key label        
+        # initialize node label        
         G.nodes[(0, 0)]["forward_rate"] = self.spot_rates[0]
         # initialization assign nan to all other nodes
         for node in G.nodes:
             if "forward_rate" not in G.nodes[node]:
-                G.nodes[node]["forward_rate"] = float("nan")
-        
+                G.nodes[node]["forward_rate"] = float("nan")        
+
+        #node_value_labels = {n: f'{n} \n {G.nodes[n]["forward_rate"]:.2f}' for n in G.nodes}
+                
         return G
     
     def _lattice_positions(self, G_ = None, x_gap=1.5, y_gap=1.0):
@@ -199,7 +240,7 @@ class binomial_interest_rate:
         #nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=8)
         
         
-        node_value_labels = {n: f'{n} \n {G.nodes[n]["forward_rate"]:.2f}' for n in G.nodes}
+        node_value_labels = {n: f'{n} \n {G.nodes[n]["forward_rate"]:.4%}' for n in G.nodes}
         nx.draw_networkx_labels(G, pos, labels=node_value_labels, font_size=10)
         # (optional) color edges by move type
         edge_colors = ["#2ca02c" if G.edges[e]["move"] == "up" else "#1f77b4" for e in G.edges]

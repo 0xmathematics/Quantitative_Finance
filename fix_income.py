@@ -143,6 +143,22 @@ PV = 102.7751
 z1 = YTM
 
 
+# p86 example 4
+par_rates = [0.02, 0.03, 0.04]
+# 103/(1+x) + 3/(1+0.02)  = 100- 
+z2= (103/(100- 3/(1+0.02)))**(0.5) -1
+# (1+z1)*(1+f1) = (1+z2)**2
+z1 = 0.02 ; z2 = 0.0301515
+f1 = (1+z2)**2/(1+z1) - 1
+
+
+
+
+
+
+#%% 
+
+
 #%% 
 
 # bootstrap method
@@ -214,7 +230,7 @@ def spot_forward(spot_rates_):
 
 spot_rates = par_spot(par_rates )
 forward_rates = spot_forward(spot_rates )
-
+# p88
 
 
 #%% 
@@ -264,9 +280,7 @@ result = minimize(objective, x0=[0.012074059789530169])  #0.0125 0.0120740597895
 
 print("Optimal x:", result.x[0])
 print("Function value:", PV_interest_rate_binominal(result.x[0]))
-
-
-
+#%%
 
 #%% 
 
@@ -416,8 +430,16 @@ forward_rates_final = [result.x[0]*exp(2*sigma*i) for i in range(t_level+1) ]
 
 rates_array[t_level] = forward_rates_final
 
+
+sigma = 0.0001 #0.15, 0.2, 0.0001
+rates_array = {}
 T = len( par_rates )
-sigma = 0.0001
+spot_rates = par_spot(par_rates )
+forward_rates = spot_forward(spot_rates )
+rates_array[0] = [spot_rates[0]]
+
+
+
 for t_level in range(1,T):
 
     forward_rate_l = forward_rates[t_level-1]*exp(-t_level*sigma)
